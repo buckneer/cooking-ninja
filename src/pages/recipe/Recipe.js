@@ -1,19 +1,40 @@
 import "./Recipe.css";
 import {useParams} from "react-router-dom";
-import {useFetch} from "../../hooks/useFetch";
 import {useTheme} from "../../hooks/useTheme";
+import {useEffect, useState} from "react";
+import {projectFirestore} from "../../firebase/config";
 
 
 function Recipe() {
 
   let {id} = useParams();
 
+  let [recipe, setRecipe] = useState(null);
+  let [isPending, setIsPending] = useState(null);
+  let [error, setError] = useState(null);
 
-  let url = "http://localhost:3000/recipes/" + id;
-
-  let {data: recipe, isPending, error} = useFetch(url);
+  useEffect(() => {
+    setIsPending(true);
+    projectFirestore.collection('recipes').doc(id).get().then(
+        (item) => {
+          if(item.exists) {
+            setIsPending(false)
+            setRecipe(item.data())
+          } else {
+            setIsPending(false)
+            setError("Doesn't Exist");
+          }
+        }
+    )
+  }, [id])
 
   let {mode} = useTheme();
+
+  let handleUpdate = () => {
+    projectFirestore.collection("recipe").doc(id).update({
+      title: "Something completely different"
+    })
+  }
 
   return (
       <div className={`Recipe ${mode}`}>
@@ -27,6 +48,7 @@ function Recipe() {
                 {recipe.ingredients.map(ing => <li key={ing}>{ing}</li>)}
               </ul>
               <p className="method">{recipe.method}</p>
+              <button onClick={handleUpdate}>Update me</button>
             </>
         )}
       </div>
